@@ -25,9 +25,9 @@ parser = argparse.ArgumentParser('./main.py', description='Run individual contin
 parser.add_argument('--get-stamp', action='store_true', help='print param-stamp & exit')
 parser.add_argument('--seed', type=int, default=0, help='random seed (for each random-module used)')
 parser.add_argument('--no-gpus', action='store_false', dest='cuda', help="don't use GPUs")
-parser.add_argument('--data-dir', type=str, default='./datasets', dest='d_dir', help="default: %(default)s")
-parser.add_argument('--plot-dir', type=str, default='./plots', dest='p_dir', help="default: %(default)s")
-parser.add_argument('--results-dir', type=str, default='./results', dest='r_dir', help="default: %(default)s")
+parser.add_argument('--data-dir', type=str, default='../datasets', dest='d_dir', help="default: %(default)s")
+parser.add_argument('--plot-dir', type=str, default='../plots', dest='p_dir', help="default: %(default)s")
+parser.add_argument('--results-dir', type=str, default='../results', dest='r_dir', help="default: %(default)s")
 
 # expirimental task parameters
 task_params = parser.add_argument_group('Task Parameters')
