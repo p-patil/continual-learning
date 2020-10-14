@@ -18,145 +18,115 @@ from train import train_cl
 from continual_learner import ContinualLearner
 from exemplars import ExemplarHandler
 from replayer import Replayer
-from param_values import set_default_values
+from param_values import set_default_values, validate_args
 
 
-parser = argparse.ArgumentParser('./main.py', description='Run individual continual learning experiment.')
-parser.add_argument('--get-stamp', action='store_true', help='print param-stamp & exit')
-parser.add_argument('--seed', type=int, default=0, help='random seed (for each random-module used)')
-parser.add_argument('--no-gpus', action='store_false', dest='cuda', help="don't use GPUs")
-parser.add_argument('--data-dir', type=str, default='../datasets', dest='d_dir', help="default: %(default)s")
-parser.add_argument('--plot-dir', type=str, default='../plots', dest='p_dir', help="default: %(default)s")
-parser.add_argument('--results-dir', type=str, default='../results', dest='r_dir', help="default: %(default)s")
+def parse_args():
+    parser = argparse.ArgumentParser('./main.py', description='Run individual continual learning experiment.')
+    parser.add_argument('--get-stamp', action='store_true', help='print param-stamp & exit')
+    parser.add_argument('--seed', type=int, default=0, help='random seed (for each random-module used)')
+    parser.add_argument('--no-gpus', action='store_false', dest='cuda', help="don't use GPUs")
+    parser.add_argument('--data-dir', type=str, default='../datasets', dest='d_dir', help="default: %(default)s")
+    parser.add_argument('--plot-dir', type=str, default='../plots', dest='p_dir', help="default: %(default)s")
+    parser.add_argument('--results-dir', type=str, default='../results', dest='r_dir', help="default: %(default)s")
 
-# expirimental task parameters
-task_params = parser.add_argument_group('Task Parameters')
-task_params.add_argument('--experiment', type=str, default='splitMNIST', choices=['permMNIST', 'splitMNIST'])
-task_params.add_argument('--scenario', type=str, default='class', choices=['task', 'domain', 'class'])
-task_params.add_argument('--tasks', type=int, help='number of tasks')
+    # expirimental task parameters
+    task_params = parser.add_argument_group('Task Parameters')
+    task_params.add_argument('--experiment', type=str, default='splitMNIST', choices=['permMNIST', 'splitMNIST'])
+    task_params.add_argument('--scenario', type=str, default='class', choices=['task', 'domain', 'class'])
+    task_params.add_argument('--tasks', type=int, help='number of tasks')
 
-# specify loss functions to be used
-loss_params = parser.add_argument_group('Loss Parameters')
-loss_params.add_argument('--bce', action='store_true', help="use binary (instead of multi-class) classication loss")
-loss_params.add_argument('--bce-distill', action='store_true', help='distilled loss on previous classes for new'
-                                                                    ' examples (only if --bce & --scenario="class")')
+    # specify loss functions to be used
+    loss_params = parser.add_argument_group('Loss Parameters')
+    loss_params.add_argument('--bce', action='store_true', help="use binary (instead of multi-class) classication loss")
+    loss_params.add_argument('--bce-distill', action='store_true', help='distilled loss on previous classes for new'
+                                                                        ' examples (only if --bce & --scenario="class")')
 
-# model architecture parameters
-model_params = parser.add_argument_group('Model Parameters')
-model_params.add_argument('--fc-layers', type=int, default=3, dest='fc_lay', help="# of fully-connected layers")
-model_params.add_argument('--fc-units', type=int, metavar="N", help="# of units in first fc-layers")
-model_params.add_argument('--fc-drop', type=float, default=0., help="dropout probability for fc-units")
-model_params.add_argument('--fc-bn', type=str, default="no", help="use batch-norm in the fc-layers (no|yes)")
-model_params.add_argument('--fc-nl', type=str, default="relu", choices=["relu", "leakyrelu"])
-model_params.add_argument('--singlehead', action='store_true', help="for Task-IL: use a 'single-headed' output layer   "
-                                                                   " (instead of a 'multi-headed' one)")
+    # model architecture parameters
+    model_params = parser.add_argument_group('Model Parameters')
+    model_params.add_argument('--fc-layers', type=int, default=3, dest='fc_lay', help="# of fully-connected layers")
+    model_params.add_argument('--fc-units', type=int, metavar="N", help="# of units in first fc-layers")
+    model_params.add_argument('--fc-drop', type=float, default=0., help="dropout probability for fc-units")
+    model_params.add_argument('--fc-bn', type=str, default="no", help="use batch-norm in the fc-layers (no|yes)")
+    model_params.add_argument('--fc-nl', type=str, default="relu", choices=["relu", "leakyrelu"])
+    model_params.add_argument('--singlehead', action='store_true', help="for Task-IL: use a 'single-headed' output layer   "
+                                                                       " (instead of a 'multi-headed' one)")
 
-# training hyperparameters / initialization
-train_params = parser.add_argument_group('Training Parameters')
-train_params.add_argument('--iters', type=int, help="# batches to optimize solver")
-train_params.add_argument('--lr', type=float, help="learning rate")
-train_params.add_argument('--batch', type=int, default=128, help="batch-size")
-train_params.add_argument('--optimizer', type=str, choices=['adam', 'adam_reset', 'sgd'], default='adam')
+    # training hyperparameters / initialization
+    train_params = parser.add_argument_group('Training Parameters')
+    train_params.add_argument('--iters', type=int, help="# batches to optimize solver")
+    train_params.add_argument('--lr', type=float, help="learning rate")
+    train_params.add_argument('--batch', type=int, default=128, help="batch-size")
+    train_params.add_argument('--optimizer', type=str, choices=['adam', 'adam_reset', 'sgd'], default='adam')
 
-# "memory replay" parameters
-replay_params = parser.add_argument_group('Replay Parameters')
-replay_params.add_argument('--feedback', action="store_true", help="equip model with feedback connections")
-replay_params.add_argument('--z-dim', type=int, default=100, help='size of latent representation (default: 100)')
-replay_choices = ['offline', 'exact', 'generative', 'none', 'current', 'exemplars']
-replay_params.add_argument('--replay', type=str, default='none', choices=replay_choices)
-replay_params.add_argument('--distill', action='store_true', help="use distillation for replay?")
-replay_params.add_argument('--temp', type=float, default=2., dest='temp', help="temperature for distillation")
-replay_params.add_argument('--agem', action='store_true', help="use gradient of replay as inequality constraint")
-# -generative model parameters (if separate model)
-genmodel_params = parser.add_argument_group('Generative Model Parameters')
-genmodel_params.add_argument('--g-z-dim', type=int, default=100, help='size of latent representation (default: 100)')
-genmodel_params.add_argument('--g-fc-lay', type=int, help='[fc_layers] in generator (default: same as classifier)')
-genmodel_params.add_argument('--g-fc-uni', type=int, help='[fc_units] in generator (default: same as classifier)')
-# - hyper-parameters for generative model (if separate model)
-gen_params = parser.add_argument_group('Generator Hyper Parameters')
-gen_params.add_argument('--g-iters', type=int, help="# batches to train generator (default: as classifier)")
-gen_params.add_argument('--lr-gen', type=float, help="learning rate generator (default: lr)")
+    # "memory replay" parameters
+    replay_params = parser.add_argument_group('Replay Parameters')
+    replay_params.add_argument('--feedback', action="store_true", help="equip model with feedback connections")
+    replay_params.add_argument('--z-dim', type=int, default=100, help='size of latent representation (default: 100)')
+    replay_choices = ['offline', 'exact', 'generative', 'none', 'current', 'exemplars']
+    replay_params.add_argument('--replay', type=str, default='none', choices=replay_choices)
+    replay_params.add_argument('--distill', action='store_true', help="use distillation for replay?")
+    replay_params.add_argument('--temp', type=float, default=2., dest='temp', help="temperature for distillation")
+    replay_params.add_argument('--agem', action='store_true', help="use gradient of replay as inequality constraint")
+    # -generative model parameters (if separate model)
+    genmodel_params = parser.add_argument_group('Generative Model Parameters')
+    genmodel_params.add_argument('--g-z-dim', type=int, default=100, help='size of latent representation (default: 100)')
+    genmodel_params.add_argument('--g-fc-lay', type=int, help='[fc_layers] in generator (default: same as classifier)')
+    genmodel_params.add_argument('--g-fc-uni', type=int, help='[fc_units] in generator (default: same as classifier)')
+    # - hyper-parameters for generative model (if separate model)
+    gen_params = parser.add_argument_group('Generator Hyper Parameters')
+    gen_params.add_argument('--g-iters', type=int, help="# batches to train generator (default: as classifier)")
+    gen_params.add_argument('--lr-gen', type=float, help="learning rate generator (default: lr)")
 
-# "memory allocation" parameters
-cl_params = parser.add_argument_group('Memory Allocation Parameters')
-cl_params.add_argument('--ewc', action='store_true', help="use 'EWC' (Kirkpatrick et al, 2017)")
-cl_params.add_argument('--lambda', type=float, dest="ewc_lambda", help="--> EWC: regularisation strength")
-cl_params.add_argument('--fisher-n', type=int, help="--> EWC: sample size estimating Fisher Information")
-cl_params.add_argument('--online', action='store_true', help="--> EWC: perform 'online EWC'")
-cl_params.add_argument('--gamma', type=float, help="--> EWC: forgetting coefficient (for 'online EWC')")
-cl_params.add_argument('--emp-fi', action='store_true', help="--> EWC: estimate FI with provided labels")
-cl_params.add_argument('--si', action='store_true', help="use 'Synaptic Intelligence' (Zenke, Poole et al, 2017)")
-cl_params.add_argument('--c', type=float, dest="si_c", help="--> SI: regularisation strength")
-cl_params.add_argument('--epsilon', type=float, default=0.1, dest="epsilon", help="--> SI: dampening parameter")
-cl_params.add_argument('--xdg', action='store_true', help="Use 'Context-dependent Gating' (Masse et al, 2018)")
-cl_params.add_argument('--gating-prop', type=float, metavar="PROP", help="--> XdG: prop neurons per layer to gate")
+    # "memory allocation" parameters
+    cl_params = parser.add_argument_group('Memory Allocation Parameters')
+    cl_params.add_argument('--ewc', action='store_true', help="use 'EWC' (Kirkpatrick et al, 2017)")
+    cl_params.add_argument('--lambda', type=float, dest="ewc_lambda", help="--> EWC: regularisation strength")
+    cl_params.add_argument('--fisher-n', type=int, help="--> EWC: sample size estimating Fisher Information")
+    cl_params.add_argument('--online', action='store_true', help="--> EWC: perform 'online EWC'")
+    cl_params.add_argument('--gamma', type=float, help="--> EWC: forgetting coefficient (for 'online EWC')")
+    cl_params.add_argument('--emp-fi', action='store_true', help="--> EWC: estimate FI with provided labels")
+    cl_params.add_argument('--si', action='store_true', help="use 'Synaptic Intelligence' (Zenke, Poole et al, 2017)")
+    cl_params.add_argument('--c', type=float, dest="si_c", help="--> SI: regularisation strength")
+    cl_params.add_argument('--epsilon', type=float, default=0.1, dest="epsilon", help="--> SI: dampening parameter")
+    cl_params.add_argument('--xdg', action='store_true', help="Use 'Context-dependent Gating' (Masse et al, 2018)")
+    cl_params.add_argument('--gating-prop', type=float, metavar="PROP", help="--> XdG: prop neurons per layer to gate")
 
-# data storage ('exemplars') parameters
-store_params = parser.add_argument_group('Data Storage Parameters')
-store_params.add_argument('--icarl', action='store_true', help="bce-distill, use-exemplars & add-exemplars")
-store_params.add_argument('--use-exemplars', action='store_true', help="use exemplars for classification")
-store_params.add_argument('--add-exemplars', action='store_true', help="add exemplars to current task's training set")
-store_params.add_argument('--budget', type=int, default=1000, dest="budget", help="how many samples can be stored?")
-store_params.add_argument('--herding', action='store_true', help="use herding to select stored data (instead of random)")
-store_params.add_argument('--norm-exemplars', action='store_true', help="normalize features/averages of exemplars")
+    # data storage ('exemplars') parameters
+    store_params = parser.add_argument_group('Data Storage Parameters')
+    store_params.add_argument('--icarl', action='store_true', help="bce-distill, use-exemplars & add-exemplars")
+    store_params.add_argument('--use-exemplars', action='store_true', help="use exemplars for classification")
+    store_params.add_argument('--add-exemplars', action='store_true', help="add exemplars to current task's training set")
+    store_params.add_argument('--budget', type=int, default=1000, dest="budget", help="how many samples can be stored?")
+    store_params.add_argument('--herding', action='store_true', help="use herding to select stored data (instead of random)")
+    store_params.add_argument('--norm-exemplars', action='store_true', help="normalize features/averages of exemplars")
 
-# evaluation parameters
-eval_params = parser.add_argument_group('Evaluation Parameters')
-eval_params.add_argument('--time', action='store_true', help="keep track of total training time")
-eval_params.add_argument('--metrics', action='store_true', help="calculate additional metrics (e.g., BWT, forgetting)")
-eval_params.add_argument('--pdf', action='store_true', help="generate pdf with results")
-eval_params.add_argument('--visdom', action='store_true', help="use visdom for on-the-fly plots")
-eval_params.add_argument('--log-per-task', action='store_true', help="set all visdom-logs to [iters]")
-eval_params.add_argument('--loss-log', type=int, default=200, metavar="N", help="# iters after which to plot loss")
-eval_params.add_argument('--prec-log', type=int, default=200, metavar="N", help="# iters after which to plot precision")
-eval_params.add_argument('--prec-n', type=int, default=1024, help="# samples for evaluating solver's precision")
-eval_params.add_argument('--sample-log', type=int, default=500, metavar="N", help="# iters after which to plot samples")
-eval_params.add_argument('--sample-n', type=int, default=64, help="# images to show")
+    # evaluation parameters
+    eval_params = parser.add_argument_group('Evaluation Parameters')
+    eval_params.add_argument('--time', action='store_true', help="keep track of total training time")
+    eval_params.add_argument('--metrics', action='store_true', help="calculate additional metrics (e.g., BWT, forgetting)")
+    eval_params.add_argument('--pdf', action='store_true', help="generate pdf with results")
+    eval_params.add_argument('--visdom', action='store_true', help="use visdom for on-the-fly plots")
+    eval_params.add_argument('--log-per-task', action='store_true', help="set all visdom-logs to [iters]")
+    eval_params.add_argument('--loss-log', type=int, default=200, metavar="N", help="# iters after which to plot loss")
+    eval_params.add_argument('--prec-log', type=int, default=200, metavar="N", help="# iters after which to plot precision")
+    eval_params.add_argument('--prec-n', type=int, default=1024, help="# samples for evaluating solver's precision")
+    eval_params.add_argument('--sample-log', type=int, default=500, metavar="N", help="# iters after which to plot samples")
+    eval_params.add_argument('--sample-n', type=int, default=64, help="# images to show")
+
+    # -load input-arguments
+    args = parser.parse_args()
+    # -set default-values for certain arguments based on chosen scenario & experiment
+    args = set_default_values(args)
+    # Check for incompatible options
+    validate_args(args)
+
+    return args
 
 
 
 def run(args, verbose=False):
 
-    # Set default arguments & check for incompatible options
-    args.lr_gen = args.lr if args.lr_gen is None else args.lr_gen
-    args.g_iters = args.iters if args.g_iters is None else args.g_iters
-    args.g_fc_lay = args.fc_lay if args.g_fc_lay is None else args.g_fc_lay
-    args.g_fc_uni = args.fc_units if args.g_fc_uni is None else args.g_fc_uni
-    # -if [log_per_task], reset all logs
-    if args.log_per_task:
-        args.prec_log = args.iters
-        args.loss_log = args.iters
-        args.sample_log = args.iters
-    # -if [iCaRL] is selected, select all accompanying options
-    if hasattr(args, "icarl") and args.icarl:
-        args.use_exemplars = True
-        args.add_exemplars = True
-        args.bce = True
-        args.bce_distill = True
-    # -if XdG is selected but not the Task-IL scenario, give error
-    if (not args.scenario=="task") and args.xdg:
-        raise ValueError("'XdG' is only compatible with the Task-IL scenario.")
-    # -if EWC, SI, XdG, A-GEM or iCaRL is selected together with 'feedback', give error
-    if args.feedback and (args.ewc or args.si or args.xdg or args.icarl or args.agem):
-        raise NotImplementedError("EWC, SI, XdG, A-GEM and iCaRL are not supported with feedback connections.")
-    # -if A-GEM is selected without any replay, give warning
-    if args.agem and args.replay=="none":
-        raise Warning("The '--agem' flag is selected, but without any type of replay. "
-                      "For the original A-GEM method, also select --replay='exemplars'.")
-    # -if EWC, SI, XdG, A-GEM or iCaRL is selected together with offline-replay, give error
-    if args.replay=="offline" and (args.ewc or args.si or args.xdg or args.icarl or args.agem):
-        raise NotImplementedError("Offline replay cannot be combined with EWC, SI, XdG, A-GEM or iCaRL.")
-    # -if binary classification loss is selected together with 'feedback', give error
-    if args.feedback and args.bce:
-        raise NotImplementedError("Binary classification loss not supported with feedback connections.")
-    # -if XdG is selected together with both replay and EWC, give error (either one of them alone with XdG is fine)
-    if (args.xdg and args.gating_prop>0) and (not args.replay=="none") and (args.ewc or args.si):
-        raise NotImplementedError("XdG is not supported with both '{}' replay and EWC / SI.".format(args.replay))
-        #--> problem is that applying different task-masks interferes with gradient calculation
-        #    (should be possible to overcome by calculating backward step on EWC/SI-loss also for each mask separately)
-    # -if 'BCEdistill' is selected for other than scenario=="class", give error
-    if args.bce_distill and not args.scenario=="class":
-        raise ValueError("BCE-distill can only be used for class-incremental learning.")
     # -create plots- and results-directories if needed
     if not os.path.isdir(args.r_dir):
         os.mkdir(args.r_dir)
@@ -644,9 +614,5 @@ def run(args, verbose=False):
 
 
 if __name__ == '__main__':
-    # -load input-arguments
-    args = parser.parse_args()
-    # -set default-values for certain arguments based on chosen scenario & experiment
-    args = set_default_values(args)
-    # -run experiment
+    args = parse_args()
     run(args, verbose=True)
