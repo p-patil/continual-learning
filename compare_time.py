@@ -8,68 +8,117 @@ import main
 from param_values import set_default_values
 
 
-description = 'Compare performance & training time of various continual learning methods.'
-parser = argparse.ArgumentParser('./compare_time.py', description=description)
-parser.add_argument('--seed', type=int, default=1111, help='[first] random seed (for each random-module used)')
-parser.add_argument('--n-seeds', type=int, default=1, help='how often to repeat?')
-parser.add_argument('--no-gpus', action='store_false', dest='cuda', help="don't use GPUs")
-parser.add_argument('--data-dir', type=str, default='./datasets', dest='d_dir', help="default: %(default)s")
-parser.add_argument('--plot-dir', type=str, default='./plots', dest='p_dir', help="default: %(default)s")
-parser.add_argument('--results-dir', type=str, default='./results', dest='r_dir', help="default: %(default)s")
+description = "Compare performance & training time of various continual learning methods."
+parser = argparse.ArgumentParser("./compare_time.py", description=description)
+parser.add_argument(
+    "--seed", type=int, default=1111, help="[first] random seed (for each random-module used)"
+)
+parser.add_argument("--n-seeds", type=int, default=1, help="how often to repeat?")
+parser.add_argument("--no-gpus", action="store_false", dest="cuda", help="don't use GPUs")
+parser.add_argument(
+    "--data-dir", type=str, default="./datasets", dest="d_dir", help="default: %(default)s"
+)
+parser.add_argument(
+    "--plot-dir", type=str, default="./plots", dest="p_dir", help="default: %(default)s"
+)
+parser.add_argument(
+    "--results-dir", type=str, default="./results", dest="r_dir", help="default: %(default)s"
+)
 
 # expirimental task parameters.
-task_params = parser.add_argument_group('Task Parameters')
-task_params.add_argument('--experiment', type=str, default='splitMNIST', choices=['permMNIST', 'splitMNIST'])
-task_params.add_argument('--scenario', type=str, default='class', choices=['task', 'domain', 'class'])
-task_params.add_argument('--tasks', type=int, help='number of tasks')
+task_params = parser.add_argument_group("Task Parameters")
+task_params.add_argument(
+    "--experiment", type=str, default="splitMNIST", choices=["permMNIST", "splitMNIST"]
+)
+task_params.add_argument(
+    "--scenario", type=str, default="class", choices=["task", "domain", "class"]
+)
+task_params.add_argument("--tasks", type=int, help="number of tasks")
 
 # model architecture parameters
-model_params = parser.add_argument_group('Model Parameters')
-model_params.add_argument('--fc-layers', type=int, default=3, dest='fc_lay', help="# of fully-connected layers")
-model_params.add_argument('--fc-units', type=int, metavar="N", help="# of units in first fc-layers")
-model_params.add_argument('--fc-drop', type=float, default=0., help="dropout probability for fc-units")
-model_params.add_argument('--fc-bn', type=str, default="no", help="use batch-norm in the fc-layers (no|yes)")
-model_params.add_argument('--fc-nl', type=str, default="relu", choices=["relu", "leakyrelu"])
-model_params.add_argument('--singlehead', action='store_true', help="for Task-IL: use a 'single-headed' output layer   "
-                                                                   " (instead of a 'multi-headed' one)")
+model_params = parser.add_argument_group("Model Parameters")
+model_params.add_argument(
+    "--fc-layers", type=int, default=3, dest="fc_lay", help="# of fully-connected layers"
+)
+model_params.add_argument("--fc-units", type=int, metavar="N", help="# of units in first fc-layers")
+model_params.add_argument(
+    "--fc-drop", type=float, default=0.0, help="dropout probability for fc-units"
+)
+model_params.add_argument(
+    "--fc-bn", type=str, default="no", help="use batch-norm in the fc-layers (no|yes)"
+)
+model_params.add_argument("--fc-nl", type=str, default="relu", choices=["relu", "leakyrelu"])
+model_params.add_argument(
+    "--singlehead",
+    action="store_true",
+    help="for Task-IL: use a 'single-headed' output layer   " " (instead of a 'multi-headed' one)",
+)
 
 # training hyperparameters / initialization
-train_params = parser.add_argument_group('Training Parameters')
-train_params.add_argument('--iters', type=int, help="# batches to optimize solver")
-train_params.add_argument('--lr', type=float, help="learning rate")
-train_params.add_argument('--batch', type=int, default=128, help="batch-size")
-train_params.add_argument('--optimizer', type=str, choices=['adam', 'adam_reset', 'sgd'], default='adam')
+train_params = parser.add_argument_group("Training Parameters")
+train_params.add_argument("--iters", type=int, help="# batches to optimize solver")
+train_params.add_argument("--lr", type=float, help="learning rate")
+train_params.add_argument("--batch", type=int, default=128, help="batch-size")
+train_params.add_argument(
+    "--optimizer", type=str, choices=["adam", "adam_reset", "sgd"], default="adam"
+)
 
 # "memory replay" parameters
-replay_params = parser.add_argument_group('Replay Parameters')
-replay_params.add_argument('--z-dim', type=int, default=100, help='size of latent representation (default: 100)')
-replay_params.add_argument('--temp', type=float, default=2., dest='temp', help="temperature for distillation")
+replay_params = parser.add_argument_group("Replay Parameters")
+replay_params.add_argument(
+    "--z-dim", type=int, default=100, help="size of latent representation (default: 100)"
+)
+replay_params.add_argument(
+    "--temp", type=float, default=2.0, dest="temp", help="temperature for distillation"
+)
 # -generative model parameters (if separate model)
-genmodel_params = parser.add_argument_group('Generative Model Parameters')
-genmodel_params.add_argument('--g-z-dim', type=int, default=100, help='size of latent representation (default: 100)')
-genmodel_params.add_argument('--g-fc-lay', type=int, help='[fc_layers] in generator (default: same as classifier)')
-genmodel_params.add_argument('--g-fc-uni', type=int, help='[fc_units] in generator (default: same as classifier)')
+genmodel_params = parser.add_argument_group("Generative Model Parameters")
+genmodel_params.add_argument(
+    "--g-z-dim", type=int, default=100, help="size of latent representation (default: 100)"
+)
+genmodel_params.add_argument(
+    "--g-fc-lay", type=int, help="[fc_layers] in generator (default: same as classifier)"
+)
+genmodel_params.add_argument(
+    "--g-fc-uni", type=int, help="[fc_units] in generator (default: same as classifier)"
+)
 # - hyper-parameters for generative model (if separate model)
-gen_params = parser.add_argument_group('Generator Hyper Parameters')
-gen_params.add_argument('--g-iters', type=int, help="# batches to train generator (default: as classifier)")
-gen_params.add_argument('--lr-gen', type=float, help="learning rate generator (default: lr)")
+gen_params = parser.add_argument_group("Generator Hyper Parameters")
+gen_params.add_argument(
+    "--g-iters", type=int, help="# batches to train generator (default: as classifier)"
+)
+gen_params.add_argument("--lr-gen", type=float, help="learning rate generator (default: lr)")
 
 # "memory allocation" parameters
-cl_params = parser.add_argument_group('Memory Allocation Parameters')
-cl_params.add_argument('--lambda', type=float, dest="ewc_lambda", help="--> EWC: regularisation strength")
-cl_params.add_argument('--o-lambda', type=float, help="--> online EWC: regularisation strength")
-cl_params.add_argument('--gamma', type=float, help="--> EWC: forgetting coefficient (for 'online EWC')")
-cl_params.add_argument('--fisher-n', type=int, help="--> EWC: sample size estimating Fisher Information")
-cl_params.add_argument('--c', type=float, dest="si_c", help="--> SI: regularisation strength")
-cl_params.add_argument('--epsilon', type=float, default=0.1, dest="epsilon", help="--> SI: dampening parameter")
-cl_params.add_argument('--gating-prop', type=float, metavar="PROP", help="--> XdG: prop neurons per layer to gate")
+cl_params = parser.add_argument_group("Memory Allocation Parameters")
+cl_params.add_argument(
+    "--lambda", type=float, dest="ewc_lambda", help="--> EWC: regularisation strength"
+)
+cl_params.add_argument("--o-lambda", type=float, help="--> online EWC: regularisation strength")
+cl_params.add_argument(
+    "--gamma", type=float, help="--> EWC: forgetting coefficient (for 'online EWC')"
+)
+cl_params.add_argument(
+    "--fisher-n", type=int, help="--> EWC: sample size estimating Fisher Information"
+)
+cl_params.add_argument("--c", type=float, dest="si_c", help="--> SI: regularisation strength")
+cl_params.add_argument(
+    "--epsilon", type=float, default=0.1, dest="epsilon", help="--> SI: dampening parameter"
+)
+cl_params.add_argument(
+    "--gating-prop", type=float, metavar="PROP", help="--> XdG: prop neurons per layer to gate"
+)
 
 # evaluation parameters
-eval_params = parser.add_argument_group('Evaluation Parameters')
-eval_params.add_argument('--pdf', action='store_true', help="generate pdfs for individual experiments")
-eval_params.add_argument('--visdom', action='store_true', help="use visdom for on-the-fly plots")
-eval_params.add_argument('--prec-n', type=int, default=1024, help="# samples for evaluating solver's precision")
-eval_params.add_argument('--sample-n', type=int, default=64, help="# images to show")
+eval_params = parser.add_argument_group("Evaluation Parameters")
+eval_params.add_argument(
+    "--pdf", action="store_true", help="generate pdfs for individual experiments"
+)
+eval_params.add_argument("--visdom", action="store_true", help="use visdom for on-the-fly plots")
+eval_params.add_argument(
+    "--prec-n", type=int, default=1024, help="# samples for evaluating solver's precision"
+)
+eval_params.add_argument("--sample-n", type=int, default=64, help="# images to show")
 
 
 def get_results(args):
@@ -82,11 +131,11 @@ def get_results(args):
         print("{}: ...running...".format(param_stamp))
         main.run(args)
     # -get average precisions & trainig-times
-    fileName = '{}/prec-{}.txt'.format(args.r_dir, param_stamp)
+    fileName = "{}/prec-{}.txt".format(args.r_dir, param_stamp)
     file = open(fileName)
     ave = float(file.readline())
     file.close()
-    fileName = '{}/time-{}.txt'.format(args.r_dir, param_stamp)
+    fileName = "{}/time-{}.txt".format(args.r_dir, param_stamp)
     file = open(fileName)
     training_time = float(file.readline())
     file.close()
@@ -108,7 +157,7 @@ def collect_all(method_dict, seed_list, args, name=None):
     return method_dict
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     ## Load input-arguments
     args = parser.parse_args()
@@ -128,7 +177,7 @@ if __name__ == '__main__':
 
     ## We need to output text-file with training time and dictionary with metrics
     args.time = True
-    args.metrics = False  #--> calculating metrics would take additional time
+    args.metrics = False  # --> calculating metrics would take additional time
 
     ## Add non-optional input argument that will be the same for all runs
     args.agem = False
@@ -155,14 +204,13 @@ if __name__ == '__main__':
     args.xdg = False
     # args.seed could of course also vary!
 
-    #-------------------------------------------------------------------------------------------------#
+    # -------------------------------------------------------------------------------------------------#
 
-    #--------------------------#
-    #----- RUN ALL MODELS -----#
-    #--------------------------#
+    # --------------------------#
+    # ----- RUN ALL MODELS -----#
+    # --------------------------#
 
-    seed_list = list(range(args.seed, args.seed+args.n_seeds))
-
+    seed_list = list(range(args.seed, args.seed + args.n_seeds))
 
     ###----"BASELINES"----###
 
@@ -176,16 +224,14 @@ if __name__ == '__main__':
     SN = {}
     SN = collect_all(SN, seed_list, args, name="None")
 
-
     ###----"XdG"----####
 
     ## XdG
-    if args.scenario=="task":
+    if args.scenario == "task":
         args.xdg = True
         SXDG = {}
         SXDG = collect_all(SXDG, seed_list, args, name="XdG")
         args.xdg = False
-
 
     ###----"EWC / SI"----####
 
@@ -207,7 +253,6 @@ if __name__ == '__main__':
     SSI = {}
     SSI = collect_all(SSI, seed_list, args, name="SI")
     args.si = False
-
 
     ###----"REPLAY"----###
 
@@ -236,12 +281,11 @@ if __name__ == '__main__':
     ORKD = {}
     ORKD = collect_all(ORKD, seed_list, args, name="RtF")
 
+    # -------------------------------------------------------------------------------------------------#
 
-    #-------------------------------------------------------------------------------------------------#
-
-    #---------------------------#
-    #----- COLLECT RESULTS -----#
-    #---------------------------#
+    # ---------------------------#
+    # ----- COLLECT RESULTS -----#
+    # ---------------------------#
 
     ave_prec = {}
     train_time = {}
@@ -250,28 +294,39 @@ if __name__ == '__main__':
     for seed in seed_list:
         i = 0
         ave_prec[seed] = [
-            SO[seed][i], SN[seed][i],
-            SRKD[seed][i], SRP[seed][i], ORKD[seed][i], SLWF[seed][i],
-            SEWC[seed][i], SOEWC[seed][i], SSI[seed][i],
+            SO[seed][i],
+            SN[seed][i],
+            SRKD[seed][i],
+            SRP[seed][i],
+            ORKD[seed][i],
+            SLWF[seed][i],
+            SEWC[seed][i],
+            SOEWC[seed][i],
+            SSI[seed][i],
         ]
 
         i = 1
         train_time[seed] = [
-            SO[seed][i], SN[seed][i],
-            SRKD[seed][i], SRP[seed][i], ORKD[seed][i], SLWF[seed][i],
-            SEWC[seed][i], SOEWC[seed][i], SSI[seed][i],
+            SO[seed][i],
+            SN[seed][i],
+            SRKD[seed][i],
+            SRP[seed][i],
+            ORKD[seed][i],
+            SLWF[seed][i],
+            SEWC[seed][i],
+            SOEWC[seed][i],
+            SSI[seed][i],
         ]
 
-        if args.scenario=="task":
+        if args.scenario == "task":
             ave_prec[seed].append(SXDG[seed][1])
             train_time[seed].append(SXDG[seed][2])
 
+    # -------------------------------------------------------------------------------------------------#
 
-    #-------------------------------------------------------------------------------------------------#
-
-    #--------------------#
-    #----- PLOTTING -----#
-    #--------------------#
+    # --------------------#
+    # ----- PLOTTING -----#
+    # --------------------#
 
     # name for plot
     plot_name = "summary-{}{}-{}".format(args.experiment, args.tasks, args.scenario)
@@ -283,13 +338,22 @@ if __name__ == '__main__':
     names = ["None"]
     colors = ["grey"]
     ids = [1]
-    if args.scenario=="task":
+    if args.scenario == "task":
         names.append("XdG")
         colors.append("purple")
         ids.append(9)
     names += ["EWC", "o-EWC", "SI", "LwF", "DGR", "DGR+distil", "RtF", "Offline"]
-    colors += ["deepskyblue", "blue", "yellowgreen", "goldenrod", "indianred", "red", "maroon", "black"]
-    ids += [6,7,8,5,3,2,4,0]
+    colors += [
+        "deepskyblue",
+        "blue",
+        "yellowgreen",
+        "goldenrod",
+        "indianred",
+        "red",
+        "maroon",
+        "black",
+    ]
+    ids += [6, 7, 8, 5, 3, 2, 4, 0]
 
     # open pdf
     pp = visual_plt.open_pdf("{}/{}.pdf".format(args.p_dir, plot_name))
@@ -297,35 +361,61 @@ if __name__ == '__main__':
 
     # bar-plot
     means = [np.mean([ave_prec[seed][id] for seed in seed_list]) for id in ids]
-    if len(seed_list)>1:
-        sems = [np.sqrt(np.var([ave_prec[seed][id] for seed in seed_list])/(len(seed_list)-1)) for id in ids]
-        cis = [1.96*np.sqrt(np.var([ave_prec[seed][id] for seed in seed_list])/(len(seed_list)-1)) for id in ids]
-    figure = visual_plt.plot_bar(means, names=names, colors=colors, ylabel="average precision (after all tasks)",
-                                 title=title, yerr=cis if len(seed_list)>1 else None, ylim=(0,1))
+    if len(seed_list) > 1:
+        sems = [
+            np.sqrt(np.var([ave_prec[seed][id] for seed in seed_list]) / (len(seed_list) - 1))
+            for id in ids
+        ]
+        cis = [
+            1.96
+            * np.sqrt(np.var([ave_prec[seed][id] for seed in seed_list]) / (len(seed_list) - 1))
+            for id in ids
+        ]
+    figure = visual_plt.plot_bar(
+        means,
+        names=names,
+        colors=colors,
+        ylabel="average precision (after all tasks)",
+        title=title,
+        yerr=cis if len(seed_list) > 1 else None,
+        ylim=(0, 1),
+    )
     figure_list.append(figure)
 
     # print results to screen
-    print("\n\n"+"#"*60+"\nSUMMARY RESULTS: {}\n".format(title)+"-"*60)
-    for i,name in enumerate(names):
+    print("\n\n" + "#" * 60 + "\nSUMMARY RESULTS: {}\n".format(title) + "-" * 60)
+    for i, name in enumerate(names):
         if len(seed_list) > 1:
-            print("{:12s} {:.2f}  (+/- {:.2f}),  n={}".format(name, 100*means[i], 100*sems[i], len(seed_list)))
+            print(
+                "{:12s} {:.2f}  (+/- {:.2f}),  n={}".format(
+                    name, 100 * means[i], 100 * sems[i], len(seed_list)
+                )
+            )
         else:
-            print("{:12s} {:.2f}".format(name, 100*means[i]))
-    print("#"*60)
+            print("{:12s} {:.2f}".format(name, 100 * means[i]))
+    print("#" * 60)
 
     # scatter-plot (accuracy vs training-time)
     accuracies = []
     times = []
     for id in ids[:-1]:
         accuracies.append([ave_prec[seed][id] for seed in seed_list])
-        times.append([train_time[seed][id]/60 for seed in seed_list])
+        times.append([train_time[seed][id] / 60 for seed in seed_list])
     xmax = np.max(times)
-    ylim = (0,1.025)
-    figure = visual_plt.plot_scatter_groups(x=times, y=accuracies, colors=colors[:-1], figsize=(12, 15), ylim=ylim,
-                                            ylabel="average precision (after all tasks)", names=names[:-1],
-                                            xlabel="training time (in min)", title=title, xlim=[0, xmax + 0.05 * xmax])
+    ylim = (0, 1.025)
+    figure = visual_plt.plot_scatter_groups(
+        x=times,
+        y=accuracies,
+        colors=colors[:-1],
+        figsize=(12, 15),
+        ylim=ylim,
+        ylabel="average precision (after all tasks)",
+        names=names[:-1],
+        xlabel="training time (in min)",
+        title=title,
+        xlim=[0, xmax + 0.05 * xmax],
+    )
     figure_list.append(figure)
-
 
     # add all figures to pdf
     for figure in figure_list:
