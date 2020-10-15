@@ -1,5 +1,5 @@
-import visual_visdom
-import evaluate
+from vis import visual_visdom
+from evaluation import evaluate
 
 
 #########################################################

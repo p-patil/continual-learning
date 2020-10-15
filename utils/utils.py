@@ -7,9 +7,9 @@ from torch.utils.data.dataloader import default_collate
 from torch.nn import functional as F
 from torchvision import transforms
 import copy
-import data
-from encoder import Classifier
-from vae_models import AutoEncoder
+from data import data
+from models.encoder import Classifier
+from models.vae_models import AutoEncoder
 
 ###################
 ## Loss function ##

@@ -5,19 +5,19 @@ import numpy as np
 import time
 import torch
 from torch import optim
-import visual_plt
-import utils
+from vis import visual_plt
+from utils import utils
 import pandas as pd
-from param_stamp import get_param_stamp, get_param_stamp_from_args
-import evaluate
-from data import get_multitask_experiment
-from encoder import Classifier
-from vae_models import AutoEncoder
-import callbacks as cb
+from utils.param_stamp import get_param_stamp, get_param_stamp_from_args
+from evaluation import evaluate
+from data.data import get_multitask_experiment
+from models.encoder import Classifier
+from models.vae_models import AutoEncoder
+from evaluation import callbacks as cb
 from train import train_cl
-from continual_learner import ContinualLearner
-from exemplars import ExemplarHandler
-from replayer import Replayer
+from models.continual_learner import ContinualLearner
+from models.exemplars import ExemplarHandler
+from models.replayer import Replayer
 from param_values import set_default_values, validate_args
 
 

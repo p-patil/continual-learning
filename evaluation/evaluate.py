@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-import visual_visdom
-import visual_plt
-import utils
+from vis import visual_visdom
+from vis import visual_plt
+from utils import utils
 
 
 ####--------------------------------------------------------------------------------------------------------------####

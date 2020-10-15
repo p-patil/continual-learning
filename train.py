@@ -4,9 +4,9 @@ from torch.utils.data import ConcatDataset
 import numpy as np
 import tqdm
 import copy
-import utils
-from data import SubDataset, ExemplarDataset
-from continual_learner import ContinualLearner
+from utils import utils
+from data.data import SubDataset, ExemplarDataset
+from models.continual_learner import ContinualLearner
 
 
 def train_cl(

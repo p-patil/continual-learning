@@ -1,10 +1,10 @@
-import data
+from data import data
 
 
 def get_param_stamp_from_args(args):
     """To get param-stamp a bit quicker."""
-    from encoder import Classifier
-    from vae_models import AutoEncoder
+    from models.encoder import Classifier
+    from models.vae_models import AutoEncoder
 
     scenario = args.scenario
     # If Task-IL scenario is chosen with single-headed output layer, set args.scenario to "domain"

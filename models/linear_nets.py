@@ -1,7 +1,7 @@
 from torch import nn
 import numpy as np
-import utils
-import excitability_modules as em
+from utils import utils
+import models.excitability_modules as em
 
 
 class fc_layer(nn.Module):

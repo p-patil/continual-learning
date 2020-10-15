@@ -2,17 +2,17 @@
 import argparse
 import os
 import numpy as np
-from param_stamp import get_param_stamp_from_args
-import visual_plt
+from utils.param_stamp import get_param_stamp_from_args
+from vis import visual_plt
 import main
-import utils
+from utils import utils
 from param_values import set_default_values
 
 
 description = (
     "Compare CL strategies using various metrics on each scenario of permuted or split MNIST."
 )
-parser = argparse.ArgumentParser("./compare_all.py", description=description)
+parser = argparse.ArgumentParser("experiments/compare_all.py", description=description)
 parser.add_argument(
     "--seed", type=int, default=1, help="[first] random seed (for each random-module used)"
 )

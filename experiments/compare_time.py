@@ -2,14 +2,14 @@
 import argparse
 import os
 import numpy as np
-from param_stamp import get_param_stamp_from_args
-import visual_plt
+from utils.param_stamp import get_param_stamp_from_args
+from vis import visual_plt
 import main
 from param_values import set_default_values
 
 
 description = "Compare performance & training time of various continual learning methods."
-parser = argparse.ArgumentParser("./compare_time.py", description=description)
+parser = argparse.ArgumentParser("experiments/compare_time.py", description=description)
 parser.add_argument(
     "--seed", type=int, default=1111, help="[first] random seed (for each random-module used)"
 )

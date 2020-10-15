@@ -1,8 +1,8 @@
 import torch
 from torch.nn import functional as F
-import utils
-from linear_nets import MLP, fc_layer, fc_layer_split
-from replayer import Replayer
+from utils import utils
+from models.linear_nets import MLP, fc_layer, fc_layer_split
+from models.replayer import Replayer
 
 
 class AutoEncoder(Replayer):

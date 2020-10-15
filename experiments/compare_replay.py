@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import os
-from param_stamp import get_param_stamp_from_args
-import visual_plt
+from utils.param_stamp import get_param_stamp_from_args
+from vis import visual_plt
 import numpy as np
 import main
 from param_values import set_default_values
 
 
 description = 'Evaluate variants of "exact replay" as function of available memory budget.'
-parser = argparse.ArgumentParser("./_compare_replay.py", description=description)
+parser = argparse.ArgumentParser("experiments/_compare_replay.py", description=description)
 parser.add_argument(
     "--seed", type=int, default=1, help="[first] random seed (for each random-module used)"
 )

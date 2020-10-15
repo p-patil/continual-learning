@@ -1,10 +1,10 @@
 import torch
 from torch.nn import functional as F
-from linear_nets import MLP, fc_layer
-from exemplars import ExemplarHandler
-from continual_learner import ContinualLearner
-from replayer import Replayer
-import utils
+from models.linear_nets import MLP, fc_layer
+from models.exemplars import ExemplarHandler
+from models.continual_learner import ContinualLearner
+from models.replayer import Replayer
+from utils import utils
 
 
 class Classifier(ContinualLearner, Replayer, ExemplarHandler):

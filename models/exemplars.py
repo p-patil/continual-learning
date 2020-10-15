@@ -2,7 +2,7 @@ import abc
 import torch
 from torch import nn
 from torch.nn import functional as F
-import utils
+from utils import utils
 import copy
 import numpy as np
 
