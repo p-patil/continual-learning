@@ -4,6 +4,11 @@ from torchvision import datasets, transforms
 from torch.utils.data import ConcatDataset, Dataset
 import torch
 
+from data.imagenet_datasets import TinyImageNet
+
+
+TINY_IMAGENET = "tiny_imagenet"  # The name we use for this dataset
+
 
 def _permutate_image_pixels(image, permutation):
     """Permutate the pixels of an image according to [permutation].
@@ -162,6 +167,7 @@ class TransformedDataset(Dataset):
 # specify available data-sets.
 AVAILABLE_DATASETS = {
     "mnist": datasets.MNIST,
+    TINY_IMAGENET: TinyImageNet,
 }
 
 # specify available transforms.
@@ -173,12 +179,18 @@ AVAILABLE_TRANSFORMS = {
     "mnist28": [
         transforms.ToTensor(),
     ],
+    TINY_IMAGENET: [
+        transforms.ToTensor(),
+        # TODO(piyush) Should we center the images by subtracting the dataset mean?
+        # transforms.Normalize(mean=(0,485, 0,456, 0,406) and std=(0,229, 0,224, 0,225)),
+    ],
 }
 
 # specify configurations of available data-sets.
 DATASET_CONFIGS = {
     "mnist": {"size": 32, "channels": 1, "classes": 10},
     "mnist28": {"size": 28, "channels": 1, "classes": 10},
+    TINY_IMAGENET: {"size": 64, "channels": 3, "classes": 200},
 }
 
 
@@ -297,6 +309,65 @@ def get_multitask_experiment(
                 )
                 test_datasets.append(
                     SubDataset(mnist_test, labels, target_transform=target_transform)
+                )
+    elif name == "splitTinyImagenet":
+        config = DATASET_CONFIGS[TINY_IMAGENET]
+
+        if tasks > config["classes"]:
+            raise ValueError("Experiment 'splitTinyImagenet' cannot have more than "
+                             f"{config['classes']} tasks!")
+
+        classes_per_task = config["classes"] // tasks
+        if config["classes"] % tasks != 0:
+            raise Warning(
+                "The requested number of tasks doesn't fit in the total number of classes. "
+                f"{config['classes'] - classes_per_task * tasks} classes will be omitted."
+            )
+
+        if not only_config:
+            # Shuffle the labels so each task gets a random subset of them.
+            permutation = np.array(range(config["classes"]))
+            if not exception:
+                permutation = np.random.permutation(permutation)
+
+            # Transform labels by mapping them through our random shuffling.
+            target_transform = transforms.Lambda(lambda y: int(permutation[y]))
+
+            # Prepare train and test datasets with all classes.
+            full_train_set = get_dataset(
+                TINY_IMAGENET,
+                type="train",
+                download=False,
+                dir=data_dir,
+                target_transform=target_transform,
+                verbose=verbose,
+            )
+            full_test_set = get_dataset(
+                TINY_IMAGENET,
+                type="test",
+                download=False,
+                dir=data_dir,
+                target_transform=target_transform,
+                verbose=verbose,
+            )
+
+            labels_per_task = [
+                list(np.array(range(classes_per_task)) + classes_per_task * task_id)
+                for task_id in range(tasks)
+            ]
+
+            # Split data into sub-tasks.
+            train_datasets, test_datasets = [], []
+            for labels in labels_per_task:
+                target_transform = None
+                if scenario == "domain":
+                    target_transform = transforms.Lambda(lambda y: y - labels[0])
+
+                train_datasets.append(
+                    SubDataset(full_train_set, labels, target_transform=target_transform)
+                )
+                test_datasets.append(
+                    SubDataset(full_test_set, labels, target_transform=target_transform)
                 )
     else:
         raise RuntimeError("Given undefined experiment: {}".format(name))

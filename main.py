@@ -43,7 +43,8 @@ def parse_args():
     # expirimental task parameters
     task_params = parser.add_argument_group("Task Parameters")
     task_params.add_argument(
-        "--experiment", type=str, default="splitMNIST", choices=["permMNIST", "splitMNIST"]
+        "--experiment", type=str, default="splitMNIST",
+        choices=["permMNIST", "splitMNIST", "splitTinyImagenet"]
     )
     task_params.add_argument(
         "--scenario", type=str, default="class", choices=["task", "domain", "class"]

@@ -1,17 +1,36 @@
 def set_default_values(args, also_hyper_params=True):
     # -set default-values for certain arguments based on chosen scenario & experiment
-    args.tasks = (
-        (5 if args.experiment == "splitMNIST" else 10) if args.tasks is None else args.tasks
-    )
-    args.iters = (
-        (2000 if args.experiment == "splitMNIST" else 5000) if args.iters is None else args.iters
-    )
-    args.lr = (0.001 if args.experiment == "splitMNIST" else 0.0001) if args.lr is None else args.lr
-    args.fc_units = (
-        (400 if args.experiment == "splitMNIST" else 1000)
-        if args.fc_units is None
-        else args.fc_units
-    )
+    if args.tasks is None:
+        if args.experiment == "splitMNIST":
+            args.tasks = 5
+        elif args.experiment == "permMNIST":
+            args.tasks = 10
+        elif args.experiment == "splitTinyImagenet":
+            args.tasks = 20
+
+    if args.iters is None:
+        if args.experiment == "splitMNIST":
+            args.iters = 2000
+        elif args.experiment == "permMNIST":
+            args.iters = 5000
+        elif args.experiment == "splitTinyImagenet":
+            args.iters = 6400  # TODO(piyush) tune
+
+    if args.lr is None:
+        if args.experiment == "splitMNIST":
+            args.lr = 0.001
+        elif args.experiment == "permMNIST":
+            args.lr = 0.0001
+        elif args.experiment == "splitTinyImagenet":
+            args.lr = 0.0001  # TODO(piyush) tune
+
+    if args.fc_units is None:
+        if args.experiment == "splitMNIST":
+            args.fc_units = 400
+        elif args.experiment == "permMNIST":
+            args.fc_units = 1000
+        elif args.experiment == "splitTinyImagenet":
+            args.fc_units = 1000  # TODO(piyush) tune
 
     args.lr_gen = args.lr if args.lr_gen is None else args.lr_gen
     args.g_iters = args.iters if args.g_iters is None else args.g_iters
@@ -29,6 +48,9 @@ def set_default_values(args, also_hyper_params=True):
         args.bce = True
         args.bce_distill = True
 
+    # TODO(piyush) None of the below configuration settings apply to iCaRL, so I'm not gonna update
+    # them to account for Tiny ImageNet. But if we want to run other experiment choices in the
+    # future, we'll need to do this.
     if also_hyper_params:
         if args.scenario == "task":
             args.gating_prop = (
