@@ -63,11 +63,6 @@ class TinyImageNet(torch.utils.data.Dataset):
         """
         return len(self.images)
 
-    # TODO(piyush) Implement data prefetching so the network mount doesn't bottleneck training. See
-    # https://pytorch.org/tutorials/beginner/data_loading_tutorial.html or
-    # https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel.
-    # TODO(piyush) Handle test
-    # Override.
     def __getitem__(self, index: int) -> Tuple[np.ndarray, int]:
         """
         Given an index, retrieves the corresponding image (as a numpy tensor) and label. The label

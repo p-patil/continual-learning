@@ -107,7 +107,8 @@ def get_data_loader(
         shuffle=True,
         collate_fn=(collate_fn or default_collate),
         drop_last=drop_last,
-        **({"num_workers": 0, "pin_memory": True} if cuda else {})
+        num_workers=10,
+        pin_memory=cuda,
     )
 
 
