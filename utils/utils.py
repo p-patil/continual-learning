@@ -11,6 +11,10 @@ from data import data
 from models.encoder import Classifier
 from models.vae_models import AutoEncoder
 
+# The default file_descriptor strategy can exceed the system limit during training.
+import torch.multiprocessing
+torch.multiprocessing.set_sharing_strategy("file_system")
+
 ###################
 ## Loss function ##
 ###################
