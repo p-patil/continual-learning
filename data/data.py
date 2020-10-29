@@ -4,11 +4,13 @@ from torchvision import datasets, transforms
 from torch.utils.data import ConcatDataset, Dataset
 import torch
 
-from data.imagenet_datasets import TinyImageNet
+from data.imagenet_datasets import ImageNet
 
 
-TINY_IMAGENET = "tiny_imagenet"  # The name we use for this dataset
-
+# ImageNet dataset names we use.
+TINY_IMAGENET = "tiny_imagenet"
+IMAGENET_1K = "imagenet1k"
+IMAGENET_FULL = "imagenet"
 
 def _permutate_image_pixels(image, permutation):
     """Permutate the pixels of an image according to [permutation].
@@ -167,7 +169,9 @@ class TransformedDataset(Dataset):
 # specify available data-sets.
 AVAILABLE_DATASETS = {
     "mnist": datasets.MNIST,
-    TINY_IMAGENET: TinyImageNet,
+    TINY_IMAGENET: ImageNet,
+    IMAGENET_1K: ImageNet,
+    IMAGENET_FULL: ImageNet,
 }
 
 # specify available transforms.
@@ -181,6 +185,18 @@ AVAILABLE_TRANSFORMS = {
     ],
     TINY_IMAGENET: [
         transforms.ToTensor(),
+    ],
+    IMAGENET_1K: [
+        transforms.ToPILImage(),
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+    ],
+    IMAGENET_FULL: [
+        transforms.ToPILImage(),
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
         # TODO(piyush) Should we center the images by subtracting the dataset mean?
         # transforms.Normalize(mean=(0,485, 0,456, 0,406) and std=(0,229, 0,224, 0,225)),
     ],
@@ -191,6 +207,8 @@ DATASET_CONFIGS = {
     "mnist": {"size": 32, "channels": 1, "classes": 10},
     "mnist28": {"size": 28, "channels": 1, "classes": 10},
     TINY_IMAGENET: {"size": 64, "channels": 3, "classes": 200},
+    IMAGENET_1K: {"size": 224, "channels": 3, "classes": 1000},
+    IMAGENET_FULL: {"size": 224, "channels": 3, "classes": 21841},
 }
 
 
@@ -310,12 +328,16 @@ def get_multitask_experiment(
                 test_datasets.append(
                     SubDataset(mnist_test, labels, target_transform=target_transform)
                 )
-    elif name == "splitTinyImagenet":
-        config = DATASET_CONFIGS[TINY_IMAGENET]
+    # elif name == "splitTinyImagenet": # TODO(piyush) remove
+    elif name in ("splitTinyImagenet", "splitImagenet1k", "splitImagenetFull"):
+        if name == "splitTinyImagenet": dataset_name = TINY_IMAGENET
+        elif name == "splitImagenet1k": dataset_name = IMAGENET_1K
+        elif name == "splitImagenetFull": dataset_name = IMAGENET_FULL
+
+        config = DATASET_CONFIGS[dataset_name]
 
         if tasks > config["classes"]:
-            raise ValueError("Experiment 'splitTinyImagenet' cannot have more than "
-                             f"{config['classes']} tasks!")
+            raise ValueError("Experiment '{name}' cannot have more than {config['classes']} tasks!")
 
         classes_per_task = config["classes"] // tasks
         if config["classes"] % tasks != 0:
@@ -335,7 +357,7 @@ def get_multitask_experiment(
 
             # Prepare train and test datasets with all classes.
             full_train_set = get_dataset(
-                TINY_IMAGENET,
+                dataset_name,
                 type="train",
                 download=False,
                 dir=data_dir,
@@ -343,7 +365,7 @@ def get_multitask_experiment(
                 verbose=verbose,
             )
             full_test_set = get_dataset(
-                TINY_IMAGENET,
+                dataset_name,
                 type="test",
                 download=False,
                 dir=data_dir,

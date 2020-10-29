@@ -7,6 +7,10 @@ def set_default_values(args, also_hyper_params=True):
             args.tasks = 10
         elif args.experiment == "splitTinyImagenet":
             args.tasks = 20
+        elif args.experiment == "splitImagenet1k":
+            args.tasks = 100
+        elif args.experiment == "splitImagenetFull":
+            args.tasks = 219
 
     if args.iters is None:
         if args.experiment == "splitMNIST":
@@ -15,6 +19,10 @@ def set_default_values(args, also_hyper_params=True):
             args.iters = 5000
         elif args.experiment == "splitTinyImagenet":
             args.iters = 6400  # TODO(piyush) tune
+        elif args.experiment == "splitImagenet1k":
+            args.iters = 32000  # TODO(piyush) tune (this is just tiny imagenet iters * 5)
+        elif args.experiment == "splitImagenetFull":
+            args.tasks = 672000  # TODO(piyush) tune (this is just imagenet-1k iters * 21)
 
     if args.lr is None:
         if args.experiment == "splitMNIST":
@@ -22,7 +30,11 @@ def set_default_values(args, also_hyper_params=True):
         elif args.experiment == "permMNIST":
             args.lr = 0.0001
         elif args.experiment == "splitTinyImagenet":
-            args.lr = 0.0001  # TODO(piyush) tune
+            args.lr = 1e-4  # TODO(piyush) tune
+        elif args.experiment == "splitImagenet1k":
+            args.lr = 1e-4  # TODO(piyush) tune
+        elif args.experiment == "splitImagenetFull":
+            args.lr = 1e-4  # TODO(piyush) tune
 
     if args.fc_units is None:
         if args.experiment == "splitMNIST":
@@ -30,6 +42,10 @@ def set_default_values(args, also_hyper_params=True):
         elif args.experiment == "permMNIST":
             args.fc_units = 1000
         elif args.experiment == "splitTinyImagenet":
+            args.fc_units = 1000  # TODO(piyush) tune
+        elif args.experiment == "splitImagenet1k":
+            args.fc_units = 1000  # TODO(piyush) tune
+        elif args.experiment == "splitImagenetFull":
             args.fc_units = 1000  # TODO(piyush) tune
 
     args.lr_gen = args.lr if args.lr_gen is None else args.lr_gen
